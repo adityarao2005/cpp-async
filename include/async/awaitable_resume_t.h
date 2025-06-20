@@ -13,6 +13,23 @@ namespace async::details
         using type = T;
     };
 
+#if defined(__cpp_concepts) && __cpp_concepts >= 202002L
+
+    template <typename T>
+        requires(requires(T t) { t.operator co_await(); })
+    struct co_await_operator_or_self<T> final
+    {
+        using type = decltype(std::declval<T>().operator co_await());
+    };
+
+    template <typename T>
+        requires(requires(T t) { operator co_await(t); })
+    struct co_await_operator_or_self<T> final
+    {
+        using type = decltype(operator co_await(std::declval<T>()));
+    };
+
+#else
     template <typename T>
     struct co_await_operator_or_self<T, std::void_t<decltype(std::declval<T>().operator co_await()), void>> final
     {
@@ -24,6 +41,8 @@ namespace async::details
     {
         using type = decltype(operator co_await(std::declval<T>()));
     };
+
+#endif
 
     template <typename T>
     using co_await_t = typename co_await_operator_or_self<T>::type;
